@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Moodboard
 
-## Getting Started
+A web-based Project Moodboard Management App built with Next.js (App Router), Tailwind CSS, Prisma, Neon Postgres, NextAuth, and Vercel Blob.
 
-First, run the development server:
+## Features
+
+- **Admin** can create/archive projects, add/edit/delete/reorder steps, upload images and files
+- **Member** can view assigned projects and download assets
+- Role-based access control (ADMIN / MEMBER)
+- Multiple image upload at once
+- Vercel Blob for asset storage
+
+## Tech Stack
+
+- Next.js 16 (App Router, TypeScript)
+- Tailwind CSS
+- Prisma (with `@prisma/adapter-neon` for Neon Postgres)
+- NextAuth (Credentials provider)
+- Vercel Blob
+
+## Environment Variables
+
+Create a `.env` file in the project root with:
+
+```env
+DATABASE_URL="postgresql://user:password@host/database?sslmode=require"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-random-secret-string"
+BLOB_READ_WRITE_TOKEN="your-vercel-blob-token"
+```
+
+- **DATABASE_URL**: Your Neon Postgres connection string
+- **NEXTAUTH_SECRET**: Any random 32+ character string
+- **BLOB_READ_WRITE_TOKEN**: From Vercel Blob (Project Settings → Storage)
+
+## Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Generate Prisma client:
+
+```bash
+npx prisma generate
+```
+
+3. Run database migrations:
+
+```bash
+npx prisma migrate dev --name init
+```
+
+4. Seed the database (creates admin + member accounts):
+
+```bash
+npx prisma db seed
+```
+
+5. Start the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+6. Open [http://localhost:3000/login](http://localhost:3000/login)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Seeded Accounts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Role   | Username      | Password  |
+|--------|---------------|-----------|
+| ADMIN  | newstalgia39  | justdoit  |
+| MEMBER | nsgstaff      | justdo    |
 
-## Learn More
+## Deployment (Vercel)
 
-To learn more about Next.js, take a look at the following resources:
+1. Push to GitHub
+2. Import project in Vercel
+3. Add environment variables in Vercel Project Settings
+4. Deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Prisma migrations run automatically via `postinstall` or you can run them manually in the Vercel build command.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/
+│   ├── admin/              # Admin pages
+│   ├── api/                # API routes
+│   ├── dashboard/          # Dashboard page
+│   ├── login/              # Login page
+│   ├── project/            # Project + step pages
+│   └── _components/        # Shared components
+├── lib/
+│   ├── auth.ts             # NextAuth config
+│   ├── prisma.ts           # Prisma client
+│   ├── session.ts          # Session helpers
+│   └── access.ts           # Access control
+└── types/
+    └── next-auth.d.ts      # NextAuth type extensions
+prisma/
+├── schema.prisma           # Database schema
+├── seed.ts                 # Seed script
+└── migrations/             # Migration files
+```
