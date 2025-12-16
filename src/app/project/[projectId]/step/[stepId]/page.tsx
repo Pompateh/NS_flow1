@@ -3,6 +3,9 @@ import Link from "next/link";
 import { getRequiredSession } from "@/lib/session";
 import { requireProjectAccess } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
+import ImageUploadForm from "@/app/_components/ImageUploadForm";
+import FileUploadForm from "@/app/_components/FileUploadForm";
+import DeleteAssetButton from "@/app/_components/DeleteAssetButton";
 
 export default async function StepDetailPage({
   params,
@@ -75,30 +78,7 @@ export default async function StepDetailPage({
 
           <section className="rounded-2xl border border-zinc-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-zinc-900">Images</h2>
-            {isAdmin ? (
-              <form
-                action={`/api/admin/step/${stepId}/assets`}
-                method="post"
-                encType="multipart/form-data"
-                className="mt-4 flex flex-col gap-2 sm:flex-row"
-              >
-                <input type="hidden" name="type" value="IMAGE" />
-                <input
-                  type="file"
-                  name="files"
-                  accept="image/*"
-                  multiple
-                  required
-                  className="h-10 flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
-                />
-                <button
-                  type="submit"
-                  className="h-10 rounded-md bg-zinc-900 px-3 text-sm font-medium text-white hover:bg-zinc-800"
-                >
-                  Upload images
-                </button>
-              </form>
-            ) : null}
+            {isAdmin ? <ImageUploadForm stepId={stepId} /> : null}
             {images.length === 0 ? (
               <p className="mt-3 text-sm text-zinc-600">No images.</p>
             ) : (
@@ -126,18 +106,7 @@ export default async function StepDetailPage({
                           Download
                         </a>
                         {isAdmin ? (
-                          <form
-                            action={`/api/admin/step/${stepId}/assets?assetId=${img.id}`}
-                            method="post"
-                          >
-                            <input type="hidden" name="_method" value="delete" />
-                            <button
-                              type="submit"
-                              className="text-sm font-medium text-zinc-700 hover:text-zinc-900"
-                            >
-                              Delete
-                            </button>
-                          </form>
+                          <DeleteAssetButton stepId={stepId} assetId={img.id} />
                         ) : null}
                       </div>
                     </div>
@@ -149,28 +118,7 @@ export default async function StepDetailPage({
 
           <section className="rounded-2xl border border-zinc-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-zinc-900">Files</h2>
-            {isAdmin ? (
-              <form
-                action={`/api/admin/step/${stepId}/assets`}
-                method="post"
-                encType="multipart/form-data"
-                className="mt-4 flex flex-col gap-2 sm:flex-row"
-              >
-                <input type="hidden" name="type" value="FILE" />
-                <input
-                  type="file"
-                  name="file"
-                  required
-                  className="h-10 flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
-                />
-                <button
-                  type="submit"
-                  className="h-10 rounded-md bg-zinc-900 px-3 text-sm font-medium text-white hover:bg-zinc-800"
-                >
-                  Upload file
-                </button>
-              </form>
-            ) : null}
+            {isAdmin ? <FileUploadForm stepId={stepId} /> : null}
             {files.length === 0 ? (
               <p className="mt-3 text-sm text-zinc-600">No files.</p>
             ) : (
@@ -196,18 +144,7 @@ export default async function StepDetailPage({
                         Download
                       </a>
                       {isAdmin ? (
-                        <form
-                          action={`/api/admin/step/${stepId}/assets?assetId=${f.id}`}
-                          method="post"
-                        >
-                          <input type="hidden" name="_method" value="delete" />
-                          <button
-                            type="submit"
-                            className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
-                          >
-                            Delete
-                          </button>
-                        </form>
+                        <DeleteAssetButton stepId={stepId} assetId={f.id} />
                       ) : null}
                     </div>
                   </div>

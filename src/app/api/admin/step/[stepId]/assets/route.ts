@@ -87,7 +87,7 @@ export async function POST(
     });
   }
 
-  return NextResponse.redirect(new URL(`/project/${step.projectId}/step/${stepId}`, req.url));
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(
