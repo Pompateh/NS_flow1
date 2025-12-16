@@ -24,14 +24,13 @@ export async function POST(
 
     const order = (maxOrder._max.order ?? 0) + 1;
 
-    const step = await prisma.step.create({
+    await prisma.step.create({
       data: {
         projectId,
         title: `Step ${order}`,
         content: "",
         order,
       },
-      select: { id: true },
     });
 
     return NextResponse.redirect(new URL(`/admin/project/${projectId}`, req.url));

@@ -37,7 +37,7 @@ export const authOptions: NextAuthOptions = {
           name: user.username,
           email: null,
           role: user.role as AppRole,
-        } as any;
+        } as { id: string; name: string; email: null; role: AppRole };
       },
     }),
   ],
@@ -47,7 +47,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user?.id) token.sub = user.id;
-      const roleFromUser = (user as any)?.role as AppRole | undefined;
+      const roleFromUser = (user as { role?: AppRole } | undefined)?.role;
       if (user) {
         (token as typeof token & { role?: AppRole }).role = roleFromUser;
       }
