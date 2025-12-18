@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import ImageUploadForm from "@/app/_components/ImageUploadForm";
 import FileUploadForm from "@/app/_components/FileUploadForm";
 import DeleteAssetButton from "@/app/_components/DeleteAssetButton";
+import StepContentForm from "@/app/_components/StepContentForm";
 
 export default async function StepDetailPage({
   params,
@@ -71,9 +72,20 @@ export default async function StepDetailPage({
         <div className="mt-8 grid gap-6">
           <section className="rounded-2xl border border-zinc-200 bg-white p-6">
             <h2 className="text-sm font-semibold text-zinc-900">Content</h2>
-            <pre className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-700">
-              {step.content || ""}
-            </pre>
+            {isAdmin ? (
+              <div className="mt-3">
+                <StepContentForm
+                  projectId={projectId}
+                  stepId={stepId}
+                  initialTitle={step.title}
+                  initialContent={step.content || ""}
+                />
+              </div>
+            ) : (
+              <pre className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-700">
+                {step.content || ""}
+              </pre>
+            )}
           </section>
 
           <section className="rounded-2xl border border-zinc-200 bg-white p-6">
@@ -85,15 +97,21 @@ export default async function StepDetailPage({
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {images.map((img: StepAsset) => (
                   <div key={img.id} className="overflow-hidden rounded-xl border border-zinc-200">
-                    <div className="relative aspect-[4/3] bg-zinc-100">
+                    <a
+                      href={img.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="relative block aspect-[4/3] bg-zinc-100"
+                    >
                       <Image
                         src={img.url}
                         alt={img.filename}
                         fill
-                        className="object-cover"
+                        unoptimized
+                        className="object-contain"
                         sizes="(min-width: 1024px) 400px, 100vw"
                       />
-                    </div>
+                    </a>
                     <div className="flex items-center justify-between gap-3 p-3">
                       <p className="truncate text-sm font-medium text-zinc-900">{img.filename}</p>
                       <div className="flex items-center gap-3">
