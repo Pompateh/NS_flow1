@@ -131,6 +131,18 @@ model Asset {
   filename  String
   createdAt DateTime  @default(now())
 
+  // Moodboard positioning (percentage-based for responsive scaling)
+  positionX       Float?    @default(0)
+  positionY       Float?    @default(0)
+  width           Float?    @default(200)
+  height          Float?    @default(150)
+  rotation        Float?    @default(0)
+  zIndex          Int?      @default(1)
+  
+  // Image description
+  description     String?
+  showDescription Boolean   @default(false)
+
   step Step @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
   @@index([stepId])

@@ -71,11 +71,34 @@ export async function POST(
     return NextResponse.json({ error: "file_required" }, { status: 400 });
   }
 
-  for (const file of filesToUpload) {
+  // Canvas dimensions (matching MoodboardCanvas)
+  const CANVAS_WIDTH = 1400;
+  const CANVAS_HEIGHT = 650; // Must match MoodboardCanvas
+  const GRID_SIZE = 50;
+
+  // Get current max zIndex for this step
+  const maxZAsset = await prisma.asset.findFirst({
+    where: { stepId, type: "IMAGE" },
+    orderBy: { zIndex: "desc" },
+    select: { zIndex: true },
+  });
+  let currentZIndex = (maxZAsset?.zIndex ?? 0) + 1;
+
+  for (let i = 0; i < filesToUpload.length; i++) {
+    const file = filesToUpload[i];
     const blob = await put(file.name, file, {
       access: "public",
       addRandomSuffix: true,
     });
+
+    // Random position snapped to grid
+    // Smaller default size to fit reduced canvas height (660px)
+    const defaultWidth = 150;
+    const defaultHeight = 100;
+    const maxGridX = Math.floor((CANVAS_WIDTH - defaultWidth) / GRID_SIZE);
+    const maxGridY = Math.floor((CANVAS_HEIGHT - defaultHeight) / GRID_SIZE);
+    const positionX = Math.floor(Math.random() * maxGridX) * GRID_SIZE;
+    const positionY = Math.floor(Math.random() * maxGridY) * GRID_SIZE;
 
     await prisma.asset.create({
       data: {
@@ -83,6 +106,11 @@ export async function POST(
         type,
         url: blob.url,
         filename: file.name,
+        positionX,
+        positionY,
+        width: defaultWidth,
+        height: defaultHeight,
+        zIndex: currentZIndex + i,
       },
     });
   }
