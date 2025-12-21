@@ -143,6 +143,8 @@ export default function MoodboardImage({
   // Handle touch move
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (isDragging || isResizing) {
+      e.preventDefault(); // Prevent page scrolling while dragging
+      e.stopPropagation();
       const touch = e.touches[0];
       handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY } as MouseEvent);
     }
@@ -182,7 +184,7 @@ export default function MoodboardImage({
   return (
     <div
       ref={containerRef}
-      className={`absolute select-none ${isDragging ? "cursor-grabbing" : isAdmin ? "cursor-grab" : ""}`}
+      className={`absolute select-none touch-none ${isDragging ? "cursor-grabbing" : isAdmin ? "cursor-grab" : ""}`}
       style={{
         left: `${leftPercent}%`,
         top: `${topPercent}%`,
