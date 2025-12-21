@@ -2,9 +2,9 @@ import Link from "next/link";
 import { getRequiredSession } from "@/lib/session";
 import { requireProjectAccess } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
-import ImageUploadForm from "@/app/_components/ImageUploadForm";
-import MoodboardCanvas from "@/app/_components/MoodboardCanvas";
 import FileList from "@/app/_components/FileList";
+import StepContentForm from "@/app/_components/StepContentForm";
+import MoodboardSection from "@/app/_components/MoodboardSection";
 
 export default async function StepDetailPage({
   params,
@@ -27,7 +27,35 @@ export default async function StepDetailPage({
       title: true,
       content: true,
       updatedAt: true,
+      moodboards: {
+        orderBy: { order: "asc" },
+        select: {
+          id: true,
+          name: true,
+          order: true,
+          assets: {
+            where: { type: "IMAGE" },
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              type: true,
+              url: true,
+              filename: true,
+              createdAt: true,
+              positionX: true,
+              positionY: true,
+              width: true,
+              height: true,
+              rotation: true,
+              zIndex: true,
+              description: true,
+              showDescription: true,
+            },
+          },
+        },
+      },
       assets: {
+        where: { moodboardId: null },
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
@@ -64,7 +92,30 @@ export default async function StepDetailPage({
   }
 
   type StepAsset = (typeof step.assets)[number];
-  const images = step.assets
+  type MoodboardType = (typeof step.moodboards)[number];
+
+  // Transform moodboards with their assets
+  const moodboards = step.moodboards.map((mb: MoodboardType) => ({
+    id: mb.id,
+    name: mb.name,
+    order: mb.order,
+    assets: mb.assets.map((a) => ({
+      id: a.id,
+      url: a.url,
+      filename: a.filename,
+      positionX: a.positionX ?? 0,
+      positionY: a.positionY ?? 0,
+      width: a.width ?? 150,
+      height: a.height ?? 100,
+      rotation: a.rotation ?? 0,
+      zIndex: a.zIndex ?? 1,
+      description: a.description,
+      showDescription: a.showDescription ?? false,
+    })),
+  }));
+
+  // Unassigned images (not in any moodboard)
+  const unassignedAssets = step.assets
     .filter((a: StepAsset) => a.type === "IMAGE")
     .map((a: StepAsset) => ({
       id: a.id,
@@ -79,33 +130,51 @@ export default async function StepDetailPage({
       description: a.description,
       showDescription: a.showDescription ?? false,
     }));
+
   const files: StepAsset[] = step.assets.filter((a: StepAsset) => a.type === "FILE");
   const isAdmin = session.user?.role === "ADMIN";
 
   return (
     <div className="min-h-screen bg-zinc-100">
-      <div className="px-4 py-6">
+      <div className="px-3 sm:px-4 py-4 sm:py-6">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href={`/project/${projectId}`} className="text-sm text-zinc-600 hover:text-zinc-900">
-              ← {project.name}
-            </Link>
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
-              {step.title}
-            </h1>
-          </div>
-          {isAdmin && (
-            <div className="flex items-center gap-3">
-              <ImageUploadForm stepId={stepId} />
-            </div>
-          )}
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <Link href={`/project/${projectId}`} className="text-sm text-zinc-600 hover:text-zinc-900">
+            ← {project.name}
+          </Link>
+          <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-900">
+            {step.title}
+          </h1>
         </div>
 
-        {/* Moodboard Canvas - Full Width */}
-        <MoodboardCanvas
+        {/* Content Section */}
+        {(isAdmin || step.content) && (
+          <section className="mb-3 sm:mb-4">
+            {isAdmin ? (
+              <StepContentForm
+                projectId={projectId}
+                stepId={stepId}
+                initialTitle={step.title}
+                initialContent={step.content || ""}
+              />
+            ) : (
+              step.content && (
+                <pre className="whitespace-pre-wrap text-sm leading-6 text-zinc-700">
+                  {step.content}
+                </pre>
+              )
+            )}
+          </section>
+        )}
+
+        {/* Separator Line */}
+        <hr className="border-zinc-300 mb-3 sm:mb-4" />
+
+        {/* Moodboard Section */}
+        <MoodboardSection
           stepId={stepId}
-          assets={images}
+          moodboards={moodboards}
+          unassignedAssets={unassignedAssets}
           isAdmin={isAdmin}
         />
 

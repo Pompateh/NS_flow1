@@ -25,22 +25,22 @@ export default async function AdminPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="flex items-center justify-between">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <Link href="/dashboard" className="text-sm text-zinc-600 hover:text-zinc-900">
               ← Back
             </Link>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">Admin</h1>
+            <h1 className="mt-2 text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900">Admin</h1>
             <p className="text-sm text-zinc-600">Manage projects (v1 minimal).</p>
           </div>
 
-          <form action="/api/admin/projects" method="post" className="flex gap-2">
+          <form action="/api/admin/projects" method="post" className="flex flex-col sm:flex-row gap-2">
             <input
               name="name"
               required
               placeholder="New project name"
-              className="h-10 w-64 rounded-md border border-zinc-200 bg-white px-3 text-sm"
+              className="h-10 w-full sm:w-64 rounded-md border border-zinc-200 bg-white px-3 text-sm"
             />
             <button
               type="submit"
@@ -51,12 +51,12 @@ export default async function AdminPage() {
           </form>
         </div>
 
-        <div className="mt-8 grid gap-3">
+        <div className="mt-6 sm:mt-8 grid gap-3">
           {projects.map((p: (typeof projects)[number]) => (
-            <div key={p.id} className="rounded-xl border border-zinc-200 bg-white p-4">
-              <div className="flex items-center justify-between gap-3">
+            <div key={p.id} className="rounded-xl border border-zinc-200 bg-white p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-base font-medium text-zinc-900">{p.name}</p>
+                  <p className="truncate text-sm sm:text-base font-medium text-zinc-900">{p.name}</p>
                   <p className="text-xs text-zinc-500">
                     {p.status} • Updated {p.updatedAt.toLocaleString()}
                   </p>

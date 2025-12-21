@@ -53,13 +53,13 @@ export default async function AdminProjectPage({
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="flex items-start justify-between gap-4">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-10">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
           <div className="space-y-1">
             <Link href="/admin" className="text-sm text-zinc-600 hover:text-zinc-900">
               ← Admin
             </Link>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900">
               Manage: {project.name}
             </h1>
             <p className="text-sm text-zinc-600">
@@ -74,8 +74,33 @@ export default async function AdminProjectPage({
           </Link>
         </div>
 
-        <div className="mt-8 grid gap-6">
-          <section className="rounded-2xl border border-zinc-200 bg-white p-6">
+        {/* Project Name Edit */}
+        <section className="mt-6 sm:mt-8 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6">
+          <h2 className="text-sm font-semibold text-zinc-900">Project Settings</h2>
+          <form
+            action={`/api/admin/project/${projectId}`}
+            method="post"
+            className="mt-4 flex flex-col sm:flex-row gap-3"
+          >
+            <input type="hidden" name="action" value="update" />
+            <input
+              name="name"
+              defaultValue={project.name}
+              required
+              className="h-10 w-full sm:flex-1 rounded-md border border-zinc-200 bg-white px-3 text-sm"
+              placeholder="Project name"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+            >
+              Save Name
+            </button>
+          </form>
+        </section>
+
+        <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-6">
+          <section className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-zinc-900">Steps</h2>
               <form action={`/api/admin/project/${projectId}/steps`} method="post">
@@ -91,8 +116,8 @@ export default async function AdminProjectPage({
 
             <div className="mt-4 grid gap-3">
               {project.steps.map((s: (typeof project.steps)[number]) => (
-                <div key={s.id} className="rounded-xl border border-zinc-200 p-4">
-                  <div className="flex items-start justify-between gap-3">
+                <div key={s.id} className="rounded-xl border border-zinc-200 p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-xs text-zinc-500">Step {s.order}</p>
                       <Link
@@ -104,14 +129,14 @@ export default async function AdminProjectPage({
                       <p className="text-xs text-zinc-500">Updated {s.updatedAt.toLocaleString()}</p>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <form action={`/api/admin/project/${projectId}/steps`} method="post">
                         <input type="hidden" name="action" value="move" />
                         <input type="hidden" name="stepId" value={s.id} />
                         <input type="hidden" name="direction" value="up" />
                         <button
                           type="submit"
-                          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+                          className="rounded-md border border-zinc-200 bg-white px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-zinc-900 hover:bg-zinc-50"
                         >
                           Up
                         </button>
@@ -122,7 +147,7 @@ export default async function AdminProjectPage({
                         <input type="hidden" name="direction" value="down" />
                         <button
                           type="submit"
-                          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+                          className="rounded-md border border-zinc-200 bg-white px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-zinc-900 hover:bg-zinc-50"
                         >
                           Down
                         </button>
@@ -132,7 +157,7 @@ export default async function AdminProjectPage({
                         <input type="hidden" name="stepId" value={s.id} />
                         <button
                           type="submit"
-                          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+                          className="rounded-md border border-zinc-200 bg-white px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-zinc-900 hover:bg-zinc-50"
                         >
                           Delete
                         </button>

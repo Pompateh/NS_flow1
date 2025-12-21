@@ -26,13 +26,13 @@ export default async function ProjectPage({
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="flex items-start justify-between gap-4">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-10">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
           <div className="space-y-1">
             <Link href="/dashboard" className="text-sm text-zinc-600 hover:text-zinc-900">
               ← Back
             </Link>
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900">
               {project.name}
             </h1>
             <p className="text-sm text-zinc-600">Status: {project.status}</p>
@@ -48,17 +48,17 @@ export default async function ProjectPage({
           ) : null}
         </div>
 
-        <div className="mt-8 grid gap-3">
+        <div className="mt-6 sm:mt-8 grid gap-3">
           {steps.map((s: (typeof steps)[number]) => (
             <Link
               key={s.id}
               href={`/project/${projectId}/step/${s.id}`}
               className="group rounded-xl border border-zinc-200 bg-white p-4 hover:border-zinc-300"
             >
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
                 <div className="space-y-1">
                   <p className="text-xs text-zinc-500">Step {s.order}</p>
-                  <p className="text-base font-medium text-zinc-900 group-hover:underline">
+                  <p className="text-sm sm:text-base font-medium text-zinc-900 group-hover:underline">
                     {s.title}
                   </p>
                 </div>

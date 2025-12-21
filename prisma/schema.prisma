@@ -116,20 +116,35 @@ model Step {
   order     Int
   updatedAt DateTime @updatedAt
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assets  Asset[]
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assets     Asset[]
+  moodboards Moodboard[]
 
   @@unique([projectId, order])
   @@index([projectId])
 }
 
-model Asset {
-  id        String    @id @default(cuid())
+model Moodboard {
+  id        String   @id @default(cuid())
   stepId    String
-  type      AssetType
-  url       String
-  filename  String
-  createdAt DateTime  @default(now())
+  name      String   @default("Concept")
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  step   Step    @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  assets Asset[]
+
+  @@index([stepId])
+}
+
+model Asset {
+  id          String    @id @default(cuid())
+  stepId      String
+  moodboardId String?
+  type        AssetType
+  url         String
+  filename    String
+  createdAt   DateTime  @default(now())
 
   // Moodboard positioning (percentage-based for responsive scaling)
   positionX       Float?    @default(0)
@@ -143,8 +158,10 @@ model Asset {
   description     String?
   showDescription Boolean   @default(false)
 
-  step Step @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  step      Step       @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  moodboard Moodboard? @relation(fields: [moodboardId], references: [id], onDelete: SetNull)
 
   @@index([stepId])
+  @@index([moodboardId])
   @@index([type])
 }

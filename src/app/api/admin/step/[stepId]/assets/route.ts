@@ -49,6 +49,7 @@ export async function POST(
   }
 
   const type = String(form.get("type") ?? "");
+  const moodboardId = form.get("moodboardId") ? String(form.get("moodboardId")) : null;
 
   if (type !== "IMAGE" && type !== "FILE") {
     return NextResponse.json({ error: "invalid_type" }, { status: 400 });
@@ -103,6 +104,7 @@ export async function POST(
     await prisma.asset.create({
       data: {
         stepId,
+        moodboardId,
         type,
         url: blob.url,
         filename: file.name,

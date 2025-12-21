@@ -20,6 +20,7 @@ export interface MoodboardAsset {
 
 interface MoodboardCanvasProps {
   stepId: string;
+  moodboardId?: string;
   assets: MoodboardAsset[];
   isAdmin: boolean;
 }
@@ -28,14 +29,16 @@ interface MoodboardCanvasProps {
 // Height must be divisible by GRID_SIZE for complete grid
 const CANVAS_WIDTH = 1400; // 1400 / 50 = 28 cells
 const CANVAS_HEIGHT = 650; // 650 / 50 = 13 cells
+const MOBILE_ASPECT_RATIO = 4 / 3; // More square aspect ratio for mobile
 const GRID_SIZE = 50; // Grid cell size for snapping
 
-export default function MoodboardCanvas({ stepId, assets, isAdmin }: MoodboardCanvasProps) {
+export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }: MoodboardCanvasProps) {
   const router = useRouter();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [localAssets, setLocalAssets] = useState<MoodboardAsset[]>(assets);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [maxZIndex, setMaxZIndex] = useState(() => 
     Math.max(...assets.map(a => a.zIndex || 1), 1)
   );
@@ -44,6 +47,58 @@ export default function MoodboardCanvas({ stepId, assets, isAdmin }: MoodboardCa
     setLocalAssets(assets);
     setMaxZIndex(Math.max(...assets.map(a => a.zIndex || 1), 1));
   }, [assets]);
+
+  // Handle paste only when this canvas is focused
+  const uploadPastedImages = useCallback(async (files: File[]) => {
+    if (!isAdmin || files.length === 0) return;
+
+    const formData = new FormData();
+    formData.append("type", "IMAGE");
+    if (moodboardId) {
+      formData.append("moodboardId", moodboardId);
+    }
+    for (const file of files) {
+      formData.append("files", file);
+    }
+
+    try {
+      const res = await fetch(`/api/admin/step/${stepId}/assets`, {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        router.refresh();
+      }
+    } catch (err) {
+      console.error("Failed to upload pasted images:", err);
+    }
+  }, [stepId, moodboardId, isAdmin, router]);
+
+  useEffect(() => {
+    if (!isFocused || !isAdmin) return;
+
+    function handlePaste(e: ClipboardEvent) {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageFiles: File[] = [];
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadPastedImages(imageFiles);
+      }
+    }
+
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [isFocused, isAdmin, uploadPastedImages]);
 
   const updateAsset = useCallback(async (
     assetId: string, 
@@ -143,22 +198,20 @@ export default function MoodboardCanvas({ stepId, assets, isAdmin }: MoodboardCa
       
       <div
         ref={canvasRef}
-        onClick={handleCanvasClick}
-        className="relative w-full overflow-hidden rounded-lg border-2 border-zinc-300 bg-white shadow-lg"
+        tabIndex={0}
+        onClick={(e) => {
+          handleCanvasClick(e);
+          setIsFocused(true);
+        }}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        className={`relative w-full overflow-hidden rounded-lg border-2 bg-white shadow-lg outline-none ${
+          isFocused ? "border-blue-400" : "border-zinc-300"
+        }`}
         style={{
           aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
         }}
       >
-        {/* Grid Lines - using percentage for responsive alignment */}
-        <div className="pointer-events-none absolute inset-0 opacity-10">
-          <div className="h-full w-full" style={{
-            backgroundImage: `
-              linear-gradient(to right, #666 1px, transparent 1px),
-              linear-gradient(to bottom, #666 1px, transparent 1px)
-            `,
-            backgroundSize: `${(GRID_SIZE / CANVAS_WIDTH) * 100}% ${(GRID_SIZE / CANVAS_HEIGHT) * 100}%`,
-          }} />
-        </div>
 
         {localAssets.map((asset) => (
           <MoodboardImage
@@ -179,16 +232,11 @@ export default function MoodboardCanvas({ stepId, assets, isAdmin }: MoodboardCa
 
         {localAssets.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center text-zinc-400">
-            <p className="text-sm">No images yet. Upload images to start your moodboard.</p>
+            <p className="text-xs sm:text-sm text-center px-4">No images yet. Upload images to start your moodboard.</p>
           </div>
         )}
       </div>
 
-      {isAdmin && (
-        <p className="mt-2 text-center text-xs text-zinc-500">
-          A3 Canvas • Drag to move • Drag corners to resize • Click to select
-        </p>
-      )}
     </div>
   );
 }

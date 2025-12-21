@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-export default function ImageUploadForm({ stepId }: { stepId: string }) {
+export default function ImageUploadForm({ stepId, moodboardId }: { stepId: string; moodboardId?: string }) {
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +29,9 @@ export default function ImageUploadForm({ stepId }: { stepId: string }) {
 
     const formData = new FormData();
     formData.append("type", "IMAGE");
+    if (moodboardId) {
+      formData.append("moodboardId", moodboardId);
+    }
     for (const file of files) {
       formData.append("files", file);
     }
@@ -52,30 +55,8 @@ export default function ImageUploadForm({ stepId }: { stepId: string }) {
     } finally {
       setUploading(false);
     }
-  }, [stepId, uploading, router]);
+  }, [stepId, moodboardId, uploading, router]);
 
-  useEffect(() => {
-    function handlePaste(e: ClipboardEvent) {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-
-      const imageFiles: File[] = [];
-      for (const item of items) {
-        if (item.type.startsWith("image/")) {
-          const file = item.getAsFile();
-          if (file) imageFiles.push(file);
-        }
-      }
-
-      if (imageFiles.length > 0) {
-        e.preventDefault();
-        uploadFiles(imageFiles);
-      }
-    }
-
-    document.addEventListener("paste", handlePaste);
-    return () => document.removeEventListener("paste", handlePaste);
-  }, [uploadFiles]);
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
@@ -131,64 +112,29 @@ export default function ImageUploadForm({ stepId }: { stepId: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4">
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+    <div className="relative inline-block">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={(e) => {
+          handleFiles(e.target.files);
+          if (e.target.files && e.target.files.length > 0) {
+            uploadFiles(Array.from(e.target.files).filter(f => f.type.startsWith("image/")));
+          }
+        }}
+        className="hidden"
+      />
+      <button
+        type="button"
         onClick={() => inputRef.current?.click()}
-        className={`cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
-          dragOver
-            ? "border-zinc-400 bg-zinc-100"
-            : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
-        }`}
+        disabled={uploading}
+        className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-50 whitespace-nowrap"
       >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => handleFiles(e.target.files)}
-          className="hidden"
-        />
-        <p className="text-sm text-zinc-600">
-          {uploading
-            ? "Uploading..."
-            : selectedFiles.length > 0
-              ? `${selectedFiles.length} image${selectedFiles.length > 1 ? "s" : ""} selected`
-              : "Drop, paste, or click to select images"}
-        </p>
-        {selectedFiles.length > 0 && (
-          <p className="mt-1 text-xs text-zinc-500">
-            {selectedFiles.map((f) => f.name).join(", ")}
-          </p>
-        )}
-      </div>
-
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-
-      {selectedFiles.length > 0 && (
-        <div className="mt-3 flex gap-2">
-          <button
-            type="submit"
-            disabled={uploading}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-          >
-            {uploading ? "Uploading..." : "Upload"}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedFiles([]);
-              if (inputRef.current) inputRef.current.value = "";
-            }}
-            disabled={uploading}
-            className="rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-          >
-            Clear
-          </button>
-        </div>
-      )}
-    </form>
+        {uploading ? "Uploading..." : "+ Add Image"}
+      </button>
+      {error && <p className="absolute top-full left-0 mt-1 text-xs text-red-600 whitespace-nowrap">{error}</p>}
+    </div>
   );
 }

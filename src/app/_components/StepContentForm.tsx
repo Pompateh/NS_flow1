@@ -49,34 +49,28 @@ export default function StepContentForm({
     <form onSubmit={handleSubmit} className="grid gap-4">
       <input type="hidden" name="action" value="update" />
       <input type="hidden" name="stepId" value={stepId} />
-      <div className="grid gap-2">
-        <label className="text-xs font-medium text-zinc-700">Title</label>
-        <input
-          name="title"
-          defaultValue={initialTitle}
-          disabled={saving}
-          className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm disabled:opacity-50"
-        />
-      </div>
-      <div className="grid gap-2">
-        <label className="text-xs font-medium text-zinc-700">Content</label>
-        <textarea
-          name="content"
-          defaultValue={initialContent}
-          rows={6}
-          disabled={saving}
-          className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm disabled:opacity-50"
-        />
-      </div>
-      <div className="flex items-center justify-between">
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={saving}
-          className="ml-auto rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Save"}
-        </button>
+      <input type="hidden" name="title" value={initialTitle} />
+      <div className="grid gap-1">
+        <div className="relative">
+          <textarea
+            name="content"
+            defaultValue={initialContent}
+            rows={4}
+            disabled={saving}
+            className="w-full border-none bg-transparent px-0 py-0 text-sm text-zinc-900 disabled:opacity-50 resize-none outline-none"
+            placeholder="Add content..."
+          />
+        </div>
+        <div className="flex items-center gap-4">
+          <button
+            type="submit"
+            disabled={saving}
+            className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+          {error && <span className="text-xs text-red-600">{error}</span>}
+        </div>
       </div>
     </form>
   );

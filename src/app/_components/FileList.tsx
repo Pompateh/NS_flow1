@@ -29,13 +29,13 @@ export default function FileList({ files, stepId, isAdmin }: FileListProps) {
 
   return (
     <>
-      <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-4">
+      <section className="mt-4 sm:mt-6 rounded-xl border border-zinc-200 bg-white p-3 sm:p-4">
         <h2 className="text-sm font-semibold text-zinc-900 mb-3">Files</h2>
         <div className="grid gap-2">
           {files.map((f) => (
             <div
               key={f.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 p-3"
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 rounded-lg border border-zinc-200 p-2 sm:p-3"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-zinc-900">{f.filename}</p>
@@ -43,17 +43,17 @@ export default function FileList({ files, stepId, isAdmin }: FileListProps) {
                   Added {new Date(f.createdAt).toLocaleString()}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1 sm:gap-2">
                 <button
                   onClick={() => setPreviewFile(f)}
-                  className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                  className="rounded-md border border-zinc-300 bg-white px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-zinc-700 hover:bg-zinc-50"
                 >
                   Review
                 </button>
                 <a
                   href={f.url}
                   download={f.filename}
-                  className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+                  className="rounded-md bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white hover:bg-zinc-800"
                 >
                   Download
                 </a>
@@ -67,17 +67,17 @@ export default function FileList({ files, stepId, isAdmin }: FileListProps) {
       {/* Preview Modal */}
       {previewFile && (
         <div
-          className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4"
           style={{ zIndex: 9999 }}
           onClick={() => setPreviewFile(null)}
         >
           <div
-            className="relative max-h-[90vh] max-w-[90vw] overflow-auto rounded-xl bg-white shadow-2xl"
+            className="relative max-h-[95vh] sm:max-h-[90vh] w-full max-w-[95vw] sm:max-w-[90vw] overflow-auto rounded-xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3">
-              <h3 className="truncate text-sm font-semibold text-zinc-900 max-w-md">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-200 bg-white px-3 sm:px-4 py-2 sm:py-3 gap-2">
+              <h3 className="truncate text-xs sm:text-sm font-semibold text-zinc-900 max-w-[150px] sm:max-w-md">
                 {previewFile.filename}
               </h3>
               <div className="flex items-center gap-2">
@@ -104,7 +104,7 @@ export default function FileList({ files, stepId, isAdmin }: FileListProps) {
               {getFileType(previewFile.filename) === "pdf" ? (
                 <iframe
                   src={previewFile.url}
-                  className="h-[75vh] w-[80vw] max-w-4xl rounded border border-zinc-200"
+                  className="h-[60vh] sm:h-[75vh] w-full sm:w-[80vw] max-w-4xl rounded border border-zinc-200"
                   title={previewFile.filename}
                 />
               ) : getFileType(previewFile.filename) === "image" ? (

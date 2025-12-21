@@ -140,17 +140,33 @@ export default function MoodboardImage({
     };
   }, [isAdmin, size]);
 
-  // Global mouse events
+  // Handle touch move
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (isDragging || isResizing) {
+      const touch = e.touches[0];
+      handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY } as MouseEvent);
+    }
+  }, [isDragging, isResizing, handleMouseMove]);
+
+  const handleTouchEnd = useCallback(() => {
+    handleMouseUp();
+  }, [handleMouseUp]);
+
+  // Global mouse and touch events
   useEffect(() => {
     if (isDragging || isResizing) {
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
+      window.addEventListener("touchmove", handleTouchMove, { passive: false });
+      window.addEventListener("touchend", handleTouchEnd);
       return () => {
         window.removeEventListener("mousemove", handleMouseMove);
         window.removeEventListener("mouseup", handleMouseUp);
+        window.removeEventListener("touchmove", handleTouchMove);
+        window.removeEventListener("touchend", handleTouchEnd);
       };
     }
-  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
+  }, [isDragging, isResizing, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   const handleDescriptionSave = () => {
     setEditingDescription(false);
@@ -181,10 +197,23 @@ export default function MoodboardImage({
     >
       {/* Image Container */}
       <div
-        className={`relative h-full overflow-hidden rounded-lg border-2 bg-zinc-100 shadow-md transition-shadow ${
-          isSelected ? "border-blue-500 shadow-xl" : "border-transparent hover:border-zinc-300"
+        className={`relative h-full overflow-hidden border-2 bg-zinc-100 ${
+          isSelected ? "border-blue-500" : "border-transparent hover:border-zinc-300"
         }`}
         onMouseDown={handleMouseDown}
+        onTouchStart={(e) => {
+          if (!isAdmin) return;
+          e.preventDefault();
+          const touch = e.touches[0];
+          onSelect();
+          setIsDragging(true);
+          dragStart.current = {
+            x: touch.clientX,
+            y: touch.clientY,
+            startX: position.x,
+            startY: position.y,
+          };
+        }}
       >
         <Image
           src={asset.url}
@@ -198,21 +227,26 @@ export default function MoodboardImage({
 
         {/* Description Footer - Inside image at bottom */}
         {asset.showDescription && (
-          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1.5 backdrop-blur-sm">
+          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-1.5 sm:px-2 py-1 sm:py-1.5 backdrop-blur-sm">
             {isAdmin && isSelected && editingDescription ? (
-              <input
-                type="text"
+              <textarea
                 value={localDescription}
                 onChange={(e) => setLocalDescription(e.target.value)}
                 onBlur={handleDescriptionSave}
-                onKeyDown={(e) => e.key === "Enter" && handleDescriptionSave()}
-                className="w-full text-xs text-white bg-transparent border-none outline-none placeholder-white/60"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleDescriptionSave();
+                  }
+                }}
+                className="w-full text-xs text-white bg-transparent border-none outline-none placeholder-white/60 resize-none"
                 placeholder="Add description..."
+                rows={2}
                 autoFocus
               />
             ) : (
               <p
-                className={`text-xs text-white/90 ${isAdmin && isSelected ? "cursor-text hover:text-white" : ""}`}
+                className={`text-xs text-white/90 break-words whitespace-pre-wrap ${isAdmin && isSelected ? "cursor-text hover:text-white" : ""}`}
                 onClick={(e) => {
                   if (isAdmin && isSelected) {
                     e.stopPropagation();
@@ -230,40 +264,45 @@ export default function MoodboardImage({
         {isAdmin && isSelected && (
           <>
             {/* Move indicator */}
-            <div className="absolute top-1 left-1 rounded bg-blue-500 p-1 text-white">
-              <Move size={14} />
+            <div className="absolute top-1 left-1 rounded bg-blue-500 p-0.5 sm:p-1 text-white">
+              <Move size={12} className="sm:w-[14px] sm:h-[14px]" />
             </div>
 
             {/* Resize handle */}
             <div
-              className="absolute bottom-0 right-0 h-6 w-6 cursor-se-resize rounded-tl bg-blue-500 flex items-center justify-center"
+              className="absolute bottom-0 right-0 h-5 w-5 sm:h-6 sm:w-6 cursor-se-resize rounded-tl bg-blue-500 flex items-center justify-center touch-none"
               onMouseDown={handleResizeStart}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                handleResizeStart({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent);
+              }}
               style={{ bottom: asset.showDescription ? '24px' : '0' }}
             >
-              <Maximize2 size={12} className="text-white rotate-90" />
+              <Maximize2 size={10} className="sm:w-[12px] sm:h-[12px] text-white rotate-90" />
             </div>
 
             {/* Action buttons */}
-            <div className="absolute top-1 right-1 flex gap-1">
+            <div className="absolute top-1 right-1 flex gap-0.5 sm:gap-1">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onToggleDescription(!asset.showDescription);
                 }}
-                className="rounded bg-zinc-800 p-1.5 text-white hover:bg-zinc-700"
+                className="rounded bg-zinc-800 p-1 sm:p-1.5 text-white hover:bg-zinc-700"
                 title={asset.showDescription ? "Hide description" : "Show description"}
               >
-                {asset.showDescription ? <EyeOff size={14} /> : <Eye size={14} />}
+                {asset.showDescription ? <EyeOff size={12} className="sm:w-[14px] sm:h-[14px]" /> : <Eye size={12} className="sm:w-[14px] sm:h-[14px]" />}
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   if (confirm("Delete this image?")) onDelete();
                 }}
-                className="rounded bg-red-600 p-1.5 text-white hover:bg-red-500"
+                className="rounded bg-red-600 p-1 sm:p-1.5 text-white hover:bg-red-500"
                 title="Delete image"
               >
-                <Trash2 size={14} />
+                <Trash2 size={12} className="sm:w-[14px] sm:h-[14px]" />
               </button>
             </div>
           </>

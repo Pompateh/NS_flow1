@@ -38,7 +38,7 @@ export default function DeleteAssetButton({
     <button
       onClick={handleDelete}
       disabled={deleting}
-      className="text-sm font-medium text-zinc-700 hover:text-zinc-900 disabled:opacity-50"
+      className="text-xs sm:text-sm font-medium text-zinc-700 hover:text-zinc-900 disabled:opacity-50"
     >
       {deleting ? "..." : "Delete"}
     </button>
