@@ -174,11 +174,49 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
         ref={inputRef}
         type="file"
         accept="image/*"
+        capture="environment"
         multiple
-        onChange={(e) => {
-          handleFiles(e.target.files);
-          if (e.target.files && e.target.files.length > 0) {
-            uploadFiles(Array.from(e.target.files).filter(f => f.type.startsWith("image/")));
+        onChange={async (e) => {
+          const files = e.target.files;
+          if (!files || files.length === 0) return;
+          
+          const imageFiles = Array.from(files).filter(f => f.type.startsWith("image/"));
+          if (imageFiles.length === 0) {
+            setError("No valid images selected");
+            return;
+          }
+          
+          // Direct upload for mobile compatibility
+          setUploading(true);
+          setError(null);
+          
+          try {
+            const formData = new FormData();
+            formData.append("type", "IMAGE");
+            if (moodboardId) {
+              formData.append("moodboardId", moodboardId);
+            }
+            for (const file of imageFiles) {
+              formData.append("files", file);
+            }
+
+            const res = await fetch(`/api/admin/step/${stepId}/assets`, {
+              method: "POST",
+              body: formData,
+            });
+
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data.error || "Upload failed");
+            }
+
+            if (inputRef.current) inputRef.current.value = "";
+            router.refresh();
+          } catch (err) {
+            console.error("Upload error:", err);
+            setError(err instanceof Error ? err.message : "Upload failed");
+          } finally {
+            setUploading(false);
           }
         }}
         className="hidden"
