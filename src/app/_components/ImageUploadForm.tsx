@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Clipboard } from "lucide-react";
 
 export default function ImageUploadForm({ stepId, moodboardId }: { stepId: string; moodboardId?: string }) {
   const router = useRouter();
@@ -59,34 +58,34 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
     }
   }, [stepId, moodboardId, uploading, router]);
 
-  // Paste from clipboard - direct upload without using uploadFiles to avoid state issues
-  const handlePasteFromClipboard = useCallback(async () => {
+  // Handle paste event from the hidden input
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
     if (pasting || uploading) return;
+    
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    
+    const imageFiles: File[] = [];
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          imageFiles.push(file);
+        }
+      }
+    }
+    
+    if (imageFiles.length === 0) {
+      setError("No image in clipboard");
+      return;
+    }
     
     setPasting(true);
     setError(null);
     
     try {
-      const clipboardItems = await navigator.clipboard.read();
-      const imageFiles: File[] = [];
-      
-      for (const item of clipboardItems) {
-        for (const type of item.types) {
-          if (type.startsWith("image/")) {
-            const blob = await item.getType(type);
-            const ext = type.split("/")[1] || "png";
-            const file = new File([blob], `pasted-image-${Date.now()}.${ext}`, { type });
-            imageFiles.push(file);
-          }
-        }
-      }
-      
-      if (imageFiles.length === 0) {
-        setError("No image in clipboard");
-        return;
-      }
-
-      // Direct upload
       const formData = new FormData();
       formData.append("type", "IMAGE");
       if (moodboardId) {
@@ -114,6 +113,8 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
       setPasting(false);
     }
   }, [pasting, uploading, stepId, moodboardId, router]);
+  
+  const pasteInputRef = useRef<HTMLInputElement>(null);
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
@@ -229,19 +230,22 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
       >
         {uploading ? "Uploading..." : "+ Add"}
       </button>
-      <button
-        type="button"
-        onClick={handlePasteFromClipboard}
-        disabled={uploading || pasting}
-        className="text-zinc-500 hover:text-zinc-900 disabled:opacity-50"
-        title="Paste image from clipboard"
-      >
-        {pasting ? (
-          <span className="text-xs">Pasting...</span>
-        ) : (
-          <Clipboard size={14} />
+      <div className="relative">
+        <input
+          ref={pasteInputRef}
+          type="text"
+          onPaste={handlePaste}
+          onFocus={(e) => e.target.select()}
+          placeholder="Tap & paste"
+          readOnly
+          className="w-20 h-6 text-xs text-center border border-zinc-300 rounded bg-zinc-50 text-zinc-500 cursor-pointer"
+        />
+        {pasting && (
+          <span className="absolute inset-0 flex items-center justify-center bg-zinc-50 text-xs text-zinc-500">
+            Pasting...
+          </span>
         )}
-      </button>
+      </div>
       {error && <p className="absolute top-full left-0 mt-1 text-xs text-red-600 whitespace-nowrap">{error}</p>}
     </div>
   );
