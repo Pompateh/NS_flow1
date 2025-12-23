@@ -323,59 +323,50 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
           </div>
         )}
 
-        {/* Paste context menu for mobile */}
-        {showPasteMenu && isAdmin && (
-          <div
-            className="absolute z-50 bg-white rounded-xl shadow-xl border border-zinc-200 overflow-hidden min-w-[160px]"
-            style={{
-              left: Math.min(pasteMenuPosition.x, 200),
-              top: pasteMenuPosition.y,
-              WebkitUserSelect: 'none',
-              WebkitTouchCallout: 'none',
-              userSelect: 'none',
-            }}
-            onTouchStart={(e) => {
+        </div>
+
+      {/* Fixed bottom sheet paste menu for mobile - outside canvas to avoid iOS paste callout */}
+      {showPasteMenu && isAdmin && (
+        <div 
+          className="fixed inset-0 z-[100]"
+          onClick={() => setShowPasteMenu(false)}
+          onTouchEnd={(e) => {
+            if (e.target === e.currentTarget) {
               e.preventDefault();
-              e.stopPropagation();
-            }}
-            onTouchMove={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
+              setShowPasteMenu(false);
+            }
+          }}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/30" />
+          
+          {/* Bottom sheet */}
+          <div 
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl p-4 pb-8 safe-area-inset-bottom"
+            onClick={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
           >
-            <div
-              role="button"
-              tabIndex={0}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handlePasteFromClipboard();
-              }}
-              onClick={handlePasteFromClipboard}
-              className="w-full px-4 py-4 text-left text-base font-medium text-zinc-800 bg-blue-50 active:bg-blue-100 flex items-center gap-3 border-b border-zinc-200"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              <span className="text-lg">📋</span>
-              <span>Add from Clipboard</span>
-            </div>
-            <div
-              role="button"
-              tabIndex={0}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowPasteMenu(false);
-              }}
-              onClick={() => setShowPasteMenu(false)}
-              className="w-full px-4 py-3 text-left text-sm text-zinc-500 active:bg-zinc-100"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              Cancel
+            <div className="w-12 h-1 bg-zinc-300 rounded-full mx-auto mb-4" />
+            <p className="text-center text-sm text-zinc-500 mb-4">Paste image from clipboard</p>
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  handlePasteFromClipboard();
+                }}
+                className="w-full py-4 bg-zinc-900 text-white rounded-xl text-base font-medium active:bg-zinc-700"
+              >
+                Paste Image
+              </button>
+              <button
+                onClick={() => setShowPasteMenu(false)}
+                className="w-full py-4 bg-zinc-100 text-zinc-700 rounded-xl text-base font-medium active:bg-zinc-200"
+              >
+                Cancel
+              </button>
             </div>
           </div>
-        )}
-      </div>
-
+        </div>
+      )}
     </div>
   );
 }
