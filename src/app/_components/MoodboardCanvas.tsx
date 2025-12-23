@@ -42,10 +42,7 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
   const [maxZIndex, setMaxZIndex] = useState(() => 
     Math.max(...assets.map(a => a.zIndex || 1), 1)
   );
-  const [showPasteMenu, setShowPasteMenu] = useState(false);
-  const [pasteMenuPosition, setPasteMenuPosition] = useState({ x: 0, y: 0 });
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-
+  
   useEffect(() => {
     setLocalAssets(assets);
     setMaxZIndex(Math.max(...assets.map(a => a.zIndex || 1), 1));
@@ -188,77 +185,10 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     if (e.target === canvasRef.current) {
       handleDeselect();
-      setShowPasteMenu(false);
     }
   }, [handleDeselect]);
 
-  // Long press handler for mobile paste
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!isAdmin) return;
-    
-    // Only handle if touching the canvas directly (not an image)
-    if (e.target !== canvasRef.current) return;
-    
-    // Prevent default to stop text selection on iOS
-    e.preventDefault();
-    
-    const touch = e.touches[0];
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    
-    longPressTimer.current = setTimeout(() => {
-      // Vibrate if supported (haptic feedback)
-      if (navigator.vibrate) {
-        navigator.vibrate(50);
-      }
-      setPasteMenuPosition({
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top,
-      });
-      setShowPasteMenu(true);
-    }, 500); // 500ms long press
-  }, [isAdmin]);
-
-  const handleTouchEnd = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }, []);
-
-  const handleTouchMove = useCallback(() => {
-    // Cancel long press if user moves finger
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }, []);
-
-  // Handle paste from clipboard API (for mobile)
-  const handlePasteFromClipboard = useCallback(async () => {
-    setShowPasteMenu(false);
-    try {
-      const clipboardItems = await navigator.clipboard.read();
-      const imageFiles: File[] = [];
-      
-      for (const item of clipboardItems) {
-        for (const type of item.types) {
-          if (type.startsWith("image/")) {
-            const blob = await item.getType(type);
-            const file = new File([blob], `pasted-image-${Date.now()}.${type.split("/")[1]}`, { type });
-            imageFiles.push(file);
-          }
-        }
-      }
-      
-      if (imageFiles.length > 0) {
-        await uploadPastedImages(imageFiles);
-      }
-    } catch (err) {
-      console.error("Could not access clipboard:", err);
-    }
-  }, [uploadPastedImages]);
-
+  
   return (
     <div className="relative">
       {saving && (
@@ -276,27 +206,11 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
         }}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onTouchMove={handleTouchMove}
-        onContextMenu={(e) => {
-          if (!isAdmin) return;
-          e.preventDefault();
-          const rect = canvasRef.current?.getBoundingClientRect();
-          if (!rect) return;
-          setPasteMenuPosition({
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
-          });
-          setShowPasteMenu(true);
-        }}
-        className={`relative w-full overflow-hidden rounded-lg border-2 bg-white shadow-lg outline-none select-none ${
+        className={`relative w-full overflow-hidden rounded-lg border-2 bg-white shadow-lg outline-none ${
           isFocused ? "border-blue-400" : "border-zinc-300"
         }`}
         style={{
           aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
-          WebkitUserSelect: 'none',
-          WebkitTouchCallout: 'none',
         }}
       >
 
@@ -322,51 +236,8 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
             <p className="text-xs sm:text-sm text-center px-4">No images yet. Upload images to start your moodboard.</p>
           </div>
         )}
+      </div>
 
-        </div>
-
-      {/* Fixed bottom sheet paste menu for mobile - outside canvas to avoid iOS paste callout */}
-      {showPasteMenu && isAdmin && (
-        <div 
-          className="fixed inset-0 z-[100]"
-          onClick={() => setShowPasteMenu(false)}
-          onTouchEnd={(e) => {
-            if (e.target === e.currentTarget) {
-              e.preventDefault();
-              setShowPasteMenu(false);
-            }
-          }}
-        >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/30" />
-          
-          {/* Bottom sheet */}
-          <div 
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl p-4 pb-8 safe-area-inset-bottom"
-            onClick={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-          >
-            <div className="w-12 h-1 bg-zinc-300 rounded-full mx-auto mb-4" />
-            <p className="text-center text-sm text-zinc-500 mb-4">Paste image from clipboard</p>
-            <div className="space-y-2">
-              <button
-                onClick={() => {
-                  handlePasteFromClipboard();
-                }}
-                className="w-full py-4 bg-zinc-900 text-white rounded-xl text-base font-medium active:bg-zinc-700"
-              >
-                Paste Image
-              </button>
-              <button
-                onClick={() => setShowPasteMenu(false)}
-                className="w-full py-4 bg-zinc-100 text-zinc-700 rounded-xl text-base font-medium active:bg-zinc-200"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
