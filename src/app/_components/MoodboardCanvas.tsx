@@ -326,21 +326,34 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
         {/* Paste context menu for mobile */}
         {showPasteMenu && isAdmin && (
           <div
-            className="absolute z-50 bg-white rounded-lg shadow-xl border border-zinc-200 py-1 min-w-[120px]"
+            className="absolute z-50 bg-white rounded-lg shadow-xl border border-zinc-200 py-1 min-w-[140px]"
             style={{
               left: pasteMenuPosition.x,
               top: pasteMenuPosition.y,
             }}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             <button
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handlePasteFromClipboard();
+              }}
               onClick={handlePasteFromClipboard}
-              className="w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 flex items-center gap-2"
+              className="w-full px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100 active:bg-zinc-200 flex items-center gap-2"
             >
               Paste Image
             </button>
             <button
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowPasteMenu(false);
+              }}
               onClick={() => setShowPasteMenu(false)}
-              className="w-full px-4 py-2 text-left text-sm text-zinc-500 hover:bg-zinc-100"
+              className="w-full px-4 py-3 text-left text-sm text-zinc-500 hover:bg-zinc-100 active:bg-zinc-200"
             >
               Cancel
             </button>
