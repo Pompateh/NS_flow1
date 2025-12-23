@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Clipboard } from "lucide-react";
 
 export default function ImageUploadForm({ stepId, moodboardId }: { stepId: string; moodboardId?: string }) {
   const router = useRouter();
@@ -10,7 +11,9 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [showPasteArea, setShowPasteArea] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pasteAreaRef = useRef<HTMLDivElement>(null);
 
   function handleFiles(files: FileList | File[] | null) {
     if (!files) return;
@@ -58,33 +61,16 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
     }
   }, [stepId, moodboardId, uploading, router]);
 
-  // Handle paste event from the hidden input
-  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
-    if (pasting || uploading) return;
-    
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    
-    const imageFiles: File[] = [];
-    
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.type.startsWith("image/")) {
-        const file = item.getAsFile();
-        if (file) {
-          imageFiles.push(file);
-        }
-      }
-    }
-    
+  // Upload images from paste event - works on all platforms including mobile
+  const uploadPastedImages = useCallback(async (imageFiles: File[]) => {
     if (imageFiles.length === 0) {
-      setError("No image in clipboard");
+      setError("No image found");
       return;
     }
-    
+
     setPasting(true);
     setError(null);
-    
+
     try {
       const formData = new FormData();
       formData.append("type", "IMAGE");
@@ -105,16 +91,65 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
         throw new Error(data.error || "Upload failed");
       }
 
+      setShowPasteArea(false);
       router.refresh();
     } catch (err) {
-      console.error("Paste error:", err);
-      setError(err instanceof Error ? err.message : "Paste failed");
+      console.error("Paste upload error:", err);
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setPasting(false);
     }
-  }, [pasting, uploading, stepId, moodboardId, router]);
-  
-  const pasteInputRef = useRef<HTMLInputElement>(null);
+  }, [stepId, moodboardId, router]);
+
+  // Handle paste event - works on mobile/iPad via contenteditable div
+  const handlePasteEvent = useCallback((e: ClipboardEvent) => {
+    if (pasting || uploading) return;
+    
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const imageFiles: File[] = [];
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          imageFiles.push(file);
+        }
+      }
+    }
+
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      uploadPastedImages(imageFiles);
+    }
+  }, [pasting, uploading, uploadPastedImages]);
+
+  // Show paste area and focus it for mobile paste support
+  const handlePasteButtonClick = useCallback(() => {
+    setShowPasteArea(true);
+    setError(null);
+    // Focus will happen in useEffect after render
+  }, []);
+
+  // Focus paste area when shown
+  useEffect(() => {
+    if (showPasteArea && pasteAreaRef.current) {
+      pasteAreaRef.current.focus();
+    }
+  }, [showPasteArea]);
+
+  // Add paste event listener to paste area
+  useEffect(() => {
+    const pasteArea = pasteAreaRef.current;
+    if (!pasteArea || !showPasteArea) return;
+
+    pasteArea.addEventListener("paste", handlePasteEvent);
+    return () => {
+      pasteArea.removeEventListener("paste", handlePasteEvent);
+    };
+  }, [showPasteArea, handlePasteEvent]);
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
@@ -230,23 +265,57 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
       >
         {uploading ? "Uploading..." : "+ Add"}
       </button>
-      <div className="relative">
-        <input
-          ref={pasteInputRef}
-          type="text"
-          onPaste={handlePaste}
-          onFocus={(e) => e.target.select()}
-          placeholder="Tap & paste"
-          readOnly
-          className="w-20 h-6 text-xs text-center border border-zinc-300 rounded bg-zinc-50 text-zinc-500 cursor-pointer"
-        />
-        {pasting && (
-          <span className="absolute inset-0 flex items-center justify-center bg-zinc-50 text-xs text-zinc-500">
-            Pasting...
-          </span>
+      <button
+        type="button"
+        onClick={handlePasteButtonClick}
+        disabled={uploading || pasting}
+        className="text-zinc-500 hover:text-zinc-900 disabled:opacity-50"
+        title="Paste image from clipboard"
+      >
+        {pasting ? (
+          <span className="text-xs">Pasting...</span>
+        ) : (
+          <Clipboard size={14} />
         )}
-      </div>
+      </button>
       {error && <p className="absolute top-full left-0 mt-1 text-xs text-red-600 whitespace-nowrap">{error}</p>}
+      
+      {/* Paste area modal for mobile/iPad compatibility */}
+      {showPasteArea && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPasteArea(false)}>
+          <div className="bg-white rounded-lg p-6 m-4 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-2">Paste Image</h3>
+            <p className="text-sm text-zinc-600 mb-4">
+              Tap the box below, then paste your image (long-press → Paste on mobile)
+            </p>
+            <div
+              ref={pasteAreaRef}
+              contentEditable
+              suppressContentEditableWarning
+              className="w-full h-32 border-2 border-dashed border-zinc-300 rounded-lg flex items-center justify-center text-zinc-400 text-sm focus:border-blue-500 focus:outline-none cursor-text"
+              style={{ WebkitUserSelect: "text", userSelect: "text" }}
+              onInput={(e) => {
+                // Clear any text content that might be pasted
+                const target = e.currentTarget;
+                if (target.textContent) {
+                  target.textContent = "";
+                }
+              }}
+            >
+              {pasting ? "Uploading..." : "Tap here and paste"}
+            </div>
+            <div className="flex justify-end mt-4">
+              <button
+                type="button"
+                onClick={() => setShowPasteArea(false)}
+                className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-900"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
