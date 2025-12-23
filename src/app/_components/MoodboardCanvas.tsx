@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Clipboard } from "lucide-react";
 import MoodboardImage from "./MoodboardImage";
 
 export interface MoodboardAsset {
@@ -267,18 +266,6 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
           Saving...
         </div>
       )}
-
-      {/* Paste button for mobile - always visible for admin */}
-      {isAdmin && (
-        <button
-          onClick={handlePasteFromClipboard}
-          className="absolute top-2 left-2 z-40 flex items-center gap-1.5 rounded-lg bg-blue-500 px-3 py-2 text-xs font-medium text-white shadow-lg hover:bg-blue-600 active:bg-blue-700 sm:hidden"
-          style={{ touchAction: 'manipulation' }}
-        >
-          <Clipboard size={14} />
-          Paste
-        </button>
-      )}
       
       <div
         ref={canvasRef}
@@ -339,37 +326,52 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
         {/* Paste context menu for mobile */}
         {showPasteMenu && isAdmin && (
           <div
-            className="absolute z-50 bg-white rounded-lg shadow-xl border border-zinc-200 py-1 min-w-[140px]"
+            className="absolute z-50 bg-white rounded-xl shadow-xl border border-zinc-200 overflow-hidden min-w-[160px]"
             style={{
-              left: pasteMenuPosition.x,
+              left: Math.min(pasteMenuPosition.x, 200),
               top: pasteMenuPosition.y,
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              userSelect: 'none',
             }}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onTouchMove={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
           >
-            <button
-              onTouchEnd={(e) => {
+            <div
+              role="button"
+              tabIndex={0}
+              onTouchStart={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 handlePasteFromClipboard();
               }}
               onClick={handlePasteFromClipboard}
-              className="w-full px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100 active:bg-zinc-200 flex items-center gap-2"
+              className="w-full px-4 py-4 text-left text-base font-medium text-zinc-800 bg-blue-50 active:bg-blue-100 flex items-center gap-3 border-b border-zinc-200"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              Paste Image
-            </button>
-            <button
-              onTouchEnd={(e) => {
+              <span className="text-lg">📋</span>
+              <span>Add from Clipboard</span>
+            </div>
+            <div
+              role="button"
+              tabIndex={0}
+              onTouchStart={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setShowPasteMenu(false);
               }}
               onClick={() => setShowPasteMenu(false)}
-              className="w-full px-4 py-3 text-left text-sm text-zinc-500 hover:bg-zinc-100 active:bg-zinc-200"
+              className="w-full px-4 py-3 text-left text-sm text-zinc-500 active:bg-zinc-100"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               Cancel
-            </button>
+            </div>
           </div>
         )}
       </div>
