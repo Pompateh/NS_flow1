@@ -272,12 +272,19 @@ export default function MoodboardImage({
 
             {/* Resize handle */}
             <div
-              className="absolute bottom-0 right-0 h-5 w-5 sm:h-6 sm:w-6 cursor-se-resize rounded-tl bg-blue-500 flex items-center justify-center touch-none"
+              className="absolute bottom-0 right-0 h-8 w-8 sm:h-6 sm:w-6 cursor-se-resize rounded-tl bg-blue-500 flex items-center justify-center touch-none"
               onMouseDown={handleResizeStart}
               onTouchStart={(e) => {
                 e.preventDefault();
+                e.stopPropagation(); // Prevent drag from triggering
                 const touch = e.touches[0];
-                handleResizeStart({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => {}, stopPropagation: () => {} } as React.MouseEvent);
+                setIsResizing(true);
+                resizeStart.current = {
+                  x: touch.clientX,
+                  y: touch.clientY,
+                  startW: size.width,
+                  startH: size.height,
+                };
               }}
               style={{ bottom: asset.showDescription ? '24px' : '0' }}
             >

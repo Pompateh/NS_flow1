@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
+import { Clipboard } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function ImageUploadForm({ stepId, moodboardId }: { stepId: string; moodboardId?: string }) {
@@ -111,8 +112,35 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
     }
   }
 
+  // Handle paste from clipboard (for mobile)
+  const handlePasteFromClipboard = useCallback(async () => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      const imageFiles: File[] = [];
+      
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith("image/")) {
+            const blob = await item.getType(type);
+            const file = new File([blob], `pasted-image-${Date.now()}.${type.split("/")[1]}`, { type });
+            imageFiles.push(file);
+          }
+        }
+      }
+      
+      if (imageFiles.length > 0) {
+        await uploadFiles(imageFiles);
+      } else {
+        setError("No image found in clipboard");
+      }
+    } catch (err) {
+      // Clipboard API might not be available or permission denied
+      setError("Could not access clipboard. Try using the file picker.");
+    }
+  }, [uploadFiles]);
+
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-flex items-center gap-2">
       <input
         ref={inputRef}
         type="file"
@@ -132,7 +160,17 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
         disabled={uploading}
         className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-50 whitespace-nowrap"
       >
-        {uploading ? "Uploading..." : "+ Add Image"}
+        {uploading ? "Uploading..." : "+ Add"}
+      </button>
+      <button
+        type="button"
+        onClick={handlePasteFromClipboard}
+        disabled={uploading}
+        className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-50 flex items-center gap-1"
+        title="Paste image from clipboard"
+      >
+        <Clipboard size={12} />
+        <span className="hidden sm:inline">Paste</span>
       </button>
       {error && <p className="absolute top-full left-0 mt-1 text-xs text-red-600 whitespace-nowrap">{error}</p>}
     </div>
