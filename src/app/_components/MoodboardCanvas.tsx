@@ -39,6 +39,9 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [pasting, setPasting] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const [maxZIndex, setMaxZIndex] = useState(() => 
     Math.max(...assets.map(a => a.zIndex || 1), 1)
   );
@@ -186,7 +189,72 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
     if (e.target === canvasRef.current) {
       handleDeselect();
     }
+    setContextMenu(null);
   }, [handleDeselect]);
+
+  // Context menu for paste
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    if (!isAdmin) return;
+    e.preventDefault();
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect) {
+      setContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    }
+  }, [isAdmin]);
+
+  // Long press for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isAdmin) return;
+    const touch = e.touches[0];
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect) {
+      longPressTimer.current = setTimeout(() => {
+        setContextMenu({ x: touch.clientX - rect.left, y: touch.clientY - rect.top });
+      }, 500);
+    }
+  }, [isAdmin]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handlePasteFromMenu = useCallback(async () => {
+    if (!isAdmin || pasting) return;
+    
+    setPasting(true);
+    setContextMenu(null);
+    
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      const imageFiles: File[] = [];
+      
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith("image/")) {
+            const blob = await item.getType(type);
+            const ext = type.split("/")[1] || "png";
+            const file = new File([blob], `pasted-image-${Date.now()}.${ext}`, { type });
+            imageFiles.push(file);
+          }
+        }
+      }
+      
+      if (imageFiles.length === 0) {
+        alert("No image in clipboard");
+        return;
+      }
+
+      await uploadPastedImages(imageFiles);
+    } catch (err) {
+      console.error("Paste error:", err);
+      alert("Failed to paste image");
+    } finally {
+      setPasting(false);
+    }
+  }, [isAdmin, pasting, uploadPastedImages]);
 
   
   return (
@@ -204,6 +272,10 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
           handleCanvasClick(e);
           setIsFocused(true);
         }}
+        onContextMenu={handleContextMenu}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchEnd}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         className={`relative w-full overflow-hidden rounded-lg border-2 bg-white shadow-lg outline-none ${
@@ -232,8 +304,24 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
         ))}
 
         {localAssets.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-zinc-400">
+          <div className="absolute inset-0 flex items-center justify-center text-zinc-400 pointer-events-none">
             <p className="text-xs sm:text-sm text-center px-4">No images yet. Upload images to start your moodboard.</p>
+          </div>
+        )}
+
+        {/* Context menu for paste */}
+        {contextMenu && isAdmin && (
+          <div
+            className="absolute z-50 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 min-w-[120px]"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            <button
+              onClick={handlePasteFromMenu}
+              disabled={pasting}
+              className="w-full px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50"
+            >
+              {pasting ? "Pasting..." : "Paste Image"}
+            </button>
           </div>
         )}
       </div>
