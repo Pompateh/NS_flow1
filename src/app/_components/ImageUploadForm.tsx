@@ -59,7 +59,7 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
     }
   }, [stepId, moodboardId, uploading, router]);
 
-  // Paste from clipboard
+  // Paste from clipboard - direct upload without using uploadFiles to avoid state issues
   const handlePasteFromClipboard = useCallback(async () => {
     if (pasting || uploading) return;
     
@@ -74,24 +74,46 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
         for (const type of item.types) {
           if (type.startsWith("image/")) {
             const blob = await item.getType(type);
-            const file = new File([blob], `pasted-image-${Date.now()}.${type.split("/")[1]}`, { type });
+            const ext = type.split("/")[1] || "png";
+            const file = new File([blob], `pasted-image-${Date.now()}.${ext}`, { type });
             imageFiles.push(file);
           }
         }
       }
       
-      if (imageFiles.length > 0) {
-        await uploadFiles(imageFiles);
-      } else {
+      if (imageFiles.length === 0) {
         setError("No image in clipboard");
+        return;
       }
+
+      // Direct upload
+      const formData = new FormData();
+      formData.append("type", "IMAGE");
+      if (moodboardId) {
+        formData.append("moodboardId", moodboardId);
+      }
+      for (const file of imageFiles) {
+        formData.append("files", file);
+      }
+
+      const res = await fetch(`/api/admin/step/${stepId}/assets`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Upload failed");
+      }
+
+      router.refresh();
     } catch (err) {
-      console.error("Could not access clipboard:", err);
-      setError("Could not access clipboard");
+      console.error("Paste error:", err);
+      setError(err instanceof Error ? err.message : "Paste failed");
     } finally {
       setPasting(false);
     }
-  }, [pasting, uploading, uploadFiles]);
+  }, [pasting, uploading, stepId, moodboardId, router]);
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
