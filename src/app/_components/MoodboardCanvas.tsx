@@ -196,11 +196,21 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (!isAdmin) return;
     
+    // Only handle if touching the canvas directly (not an image)
+    if (e.target !== canvasRef.current) return;
+    
+    // Prevent default to stop text selection on iOS
+    e.preventDefault();
+    
     const touch = e.touches[0];
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     
     longPressTimer.current = setTimeout(() => {
+      // Vibrate if supported (haptic feedback)
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
       setPasteMenuPosition({
         x: touch.clientX - rect.left,
         y: touch.clientY - rect.top,
@@ -280,11 +290,13 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
           });
           setShowPasteMenu(true);
         }}
-        className={`relative w-full overflow-hidden rounded-lg border-2 bg-white shadow-lg outline-none ${
+        className={`relative w-full overflow-hidden rounded-lg border-2 bg-white shadow-lg outline-none select-none ${
           isFocused ? "border-blue-400" : "border-zinc-300"
         }`}
         style={{
           aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none',
         }}
       >
 
