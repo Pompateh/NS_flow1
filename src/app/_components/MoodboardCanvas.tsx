@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Clipboard } from "lucide-react";
 import MoodboardImage from "./MoodboardImage";
 
 export interface MoodboardAsset {
@@ -265,6 +266,18 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
         <div className="absolute top-2 right-2 z-50 rounded bg-zinc-900 px-2 py-1 text-xs text-white">
           Saving...
         </div>
+      )}
+
+      {/* Paste button for mobile - always visible for admin */}
+      {isAdmin && (
+        <button
+          onClick={handlePasteFromClipboard}
+          className="absolute top-2 left-2 z-40 flex items-center gap-1.5 rounded-lg bg-blue-500 px-3 py-2 text-xs font-medium text-white shadow-lg hover:bg-blue-600 active:bg-blue-700 sm:hidden"
+          style={{ touchAction: 'manipulation' }}
+        >
+          <Clipboard size={14} />
+          Paste
+        </button>
       )}
       
       <div
