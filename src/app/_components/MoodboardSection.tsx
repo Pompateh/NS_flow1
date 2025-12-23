@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Edit2 } from "lucide-react";
+import { Plus, Trash2, Lock, Unlock } from "lucide-react";
 import MoodboardCanvas from "./MoodboardCanvas";
 import ImageUploadForm from "./ImageUploadForm";
+import FileUploadForm from "./FileUploadForm";
 
 interface MoodboardAsset {
   id: string;
@@ -24,6 +25,8 @@ interface Moodboard {
   id: string;
   name: string;
   order: number;
+  content: string;
+  isLocked: boolean;
   assets: MoodboardAsset[];
 }
 
@@ -42,9 +45,10 @@ export default function MoodboardSection({
 }: MoodboardSectionProps) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-
+  const [savingContent, setSavingContent] = useState<string | null>(null);
+  const [togglingLock, setTogglingLock] = useState<string | null>(null);
+  const [concept1Locked, setConcept1Locked] = useState(false);
+  
   const handleCreateMoodboard = async () => {
     setCreating(true);
     try {
@@ -61,7 +65,11 @@ export default function MoodboardSection({
     }
   };
 
-  const handleDeleteMoodboard = async (moodboardId: string) => {
+  const handleDeleteMoodboard = async (moodboardId: string, isLocked: boolean) => {
+    if (isLocked) {
+      alert("Unlock the moodboard first before deleting.");
+      return;
+    }
     if (!confirm("Delete this moodboard and all its images?")) return;
     
     try {
@@ -76,29 +84,43 @@ export default function MoodboardSection({
     }
   };
 
-  const handleRenameMoodboard = async (moodboardId: string) => {
-    if (!editName.trim()) return;
-    
+  const handleSaveContent = async (moodboardId: string, content: string) => {
+    setSavingContent(moodboardId);
     try {
       const res = await fetch(`/api/admin/step/${stepId}/moodboards/${moodboardId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName }),
+        body: JSON.stringify({ content }),
       });
       if (res.ok) {
-        setEditingId(null);
         router.refresh();
       }
     } catch (err) {
-      console.error("Failed to rename moodboard:", err);
+      console.error("Failed to save content:", err);
+    } finally {
+      setSavingContent(null);
     }
   };
 
-  const startEditing = (moodboard: Moodboard) => {
-    setEditingId(moodboard.id);
-    setEditName(moodboard.name);
+  const handleToggleLock = async (moodboardId: string, currentLocked: boolean) => {
+    setTogglingLock(moodboardId);
+    try {
+      const res = await fetch(`/api/admin/step/${stepId}/moodboards/${moodboardId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isLocked: !currentLocked }),
+      });
+      if (res.ok) {
+        router.refresh();
+      }
+    } catch (err) {
+      console.error("Failed to toggle lock:", err);
+    } finally {
+      setTogglingLock(null);
+    }
   };
 
+  
   const hasUnassigned = unassignedAssets.length > 0;
   const hasNoMoodboards = moodboards.length === 0;
 
@@ -108,15 +130,27 @@ export default function MoodboardSection({
       {hasUnassigned && (
         <div>
           <div className="flex items-center justify-between mb-2 gap-2">
-            <h3 className="text-xs sm:text-sm font-medium text-zinc-700 truncate">
-              {hasNoMoodboards ? "Concept 1" : "Unassigned"}
+            <h3 className="text-xs sm:text-sm font-medium text-zinc-700 truncate flex items-center gap-2">
+              Concept 1
+              {concept1Locked && <Lock size={12} className="text-amber-500" />}
             </h3>
-            {isAdmin && <ImageUploadForm stepId={stepId} />}
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setConcept1Locked(!concept1Locked)}
+                  className={`${concept1Locked ? "text-amber-500 hover:text-amber-600" : "text-zinc-400 hover:text-zinc-600"}`}
+                  title={concept1Locked ? "Unlock moodboard" : "Lock moodboard"}
+                >
+                  {concept1Locked ? <Lock size={14} /> : <Unlock size={14} />}
+                </button>
+                {!concept1Locked && <ImageUploadForm stepId={stepId} />}
+              </div>
+            )}
           </div>
           <MoodboardCanvas
             stepId={stepId}
             assets={unassignedAssets}
-            isAdmin={isAdmin}
+            isAdmin={isAdmin && !concept1Locked}
           />
         </div>
       )}
@@ -125,58 +159,66 @@ export default function MoodboardSection({
       {moodboards.map((moodboard, index) => (
         <div key={moodboard.id}>
           <div className="flex items-center justify-between mb-2 gap-2">
-            {editingId === moodboard.id ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleRenameMoodboard(moodboard.id);
-                    if (e.key === "Escape") setEditingId(null);
-                  }}
-                  className="px-2 py-1 text-sm border border-zinc-300 rounded"
-                  autoFocus
-                />
-                <button
-                  onClick={() => handleRenameMoodboard(moodboard.id)}
-                  className="text-xs text-zinc-600 hover:text-zinc-900"
-                >
-                  Save
-                </button>
-              </div>
-            ) : (
-              <h3 className="text-xs sm:text-sm font-medium text-zinc-700 flex items-center gap-1 sm:gap-2 truncate">
-                {moodboard.name}
-                {isAdmin && (
-                  <button
-                    onClick={() => startEditing(moodboard)}
-                    className="text-zinc-400 hover:text-zinc-600"
-                  >
-                    <Edit2 size={12} />
-                  </button>
-                )}
-              </h3>
-            )}
+            <h3 className="text-xs sm:text-sm font-medium text-zinc-700 truncate flex items-center gap-2">
+              Concept {index + 2}
+              {moodboard.isLocked && <Lock size={12} className="text-amber-500" />}
+            </h3>
             
             {isAdmin && (
               <div className="flex items-center gap-2">
-                <ImageUploadForm stepId={stepId} moodboardId={moodboard.id} />
                 <button
-                  onClick={() => handleDeleteMoodboard(moodboard.id)}
-                  className="text-zinc-400 hover:text-red-600"
-                  title="Delete moodboard"
+                  onClick={() => handleToggleLock(moodboard.id, moodboard.isLocked)}
+                  disabled={togglingLock === moodboard.id}
+                  className={`${moodboard.isLocked ? "text-amber-500 hover:text-amber-600" : "text-zinc-400 hover:text-zinc-600"} disabled:opacity-50`}
+                  title={moodboard.isLocked ? "Unlock moodboard" : "Lock moodboard"}
                 >
-                  <Trash2 size={14} />
+                  {moodboard.isLocked ? <Lock size={14} /> : <Unlock size={14} />}
                 </button>
+                {!moodboard.isLocked && (
+                  <>
+                    <ImageUploadForm stepId={stepId} moodboardId={moodboard.id} />
+                    <button
+                      onClick={() => handleDeleteMoodboard(moodboard.id, moodboard.isLocked)}
+                      className="text-zinc-400 hover:text-red-600"
+                      title="Delete moodboard"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
+
+          {/* Content box for moodboard */}
+          {isAdmin && !moodboard.isLocked ? (
+            <div className="mb-2">
+              <textarea
+                defaultValue={moodboard.content}
+                placeholder="Add notes for this concept..."
+                rows={2}
+                className="w-full text-xs sm:text-sm text-zinc-700 bg-white border border-zinc-200 rounded-lg px-3 py-2 resize-none outline-none focus:border-zinc-400"
+                onBlur={(e) => {
+                  if (e.target.value !== moodboard.content) {
+                    handleSaveContent(moodboard.id, e.target.value);
+                  }
+                }}
+              />
+              {savingContent === moodboard.id && (
+                <p className="text-xs text-zinc-400 mt-1">Saving...</p>
+              )}
+            </div>
+          ) : moodboard.content ? (
+            <div className="mb-2 text-xs sm:text-sm text-zinc-600 bg-zinc-50 rounded-lg px-3 py-2 whitespace-pre-wrap">
+              {moodboard.content}
+            </div>
+          ) : null}
+
           <MoodboardCanvas
             stepId={stepId}
             moodboardId={moodboard.id}
             assets={moodboard.assets}
-            isAdmin={isAdmin}
+            isAdmin={isAdmin && !moodboard.isLocked}
           />
         </div>
       ))}
@@ -185,13 +227,27 @@ export default function MoodboardSection({
       {hasNoMoodboards && !hasUnassigned && (
         <div>
           <div className="flex items-center justify-between mb-2 gap-2">
-            <h3 className="text-xs sm:text-sm font-medium text-zinc-700">Concept 1</h3>
-            {isAdmin && <ImageUploadForm stepId={stepId} />}
+            <h3 className="text-xs sm:text-sm font-medium text-zinc-700 flex items-center gap-2">
+              Concept 1
+              {concept1Locked && <Lock size={12} className="text-amber-500" />}
+            </h3>
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setConcept1Locked(!concept1Locked)}
+                  className={`${concept1Locked ? "text-amber-500 hover:text-amber-600" : "text-zinc-400 hover:text-zinc-600"}`}
+                  title={concept1Locked ? "Unlock moodboard" : "Lock moodboard"}
+                >
+                  {concept1Locked ? <Lock size={14} /> : <Unlock size={14} />}
+                </button>
+                {!concept1Locked && <ImageUploadForm stepId={stepId} />}
+              </div>
+            )}
           </div>
           <MoodboardCanvas
             stepId={stepId}
             assets={[]}
-            isAdmin={isAdmin}
+            isAdmin={isAdmin && !concept1Locked}
           />
         </div>
       )}
@@ -207,6 +263,9 @@ export default function MoodboardSection({
           {creating ? "Creating..." : "Add New Concept Moodboard"}
         </button>
       )}
+
+      {/* File upload zone */}
+      {isAdmin && <FileUploadForm stepId={stepId} />}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import FileList from "@/app/_components/FileList";
 import StepContentForm from "@/app/_components/StepContentForm";
 import MoodboardSection from "@/app/_components/MoodboardSection";
+import CommentsIndicator from "@/app/_components/CommentsIndicator";
 
 export default async function StepDetailPage({
   params,
@@ -20,6 +21,18 @@ export default async function StepDetailPage({
     role: session.user?.role,
   });
 
+  // Get comments for this step
+  const comments = await prisma.comment.findMany({
+    where: { projectId, stepId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      content: true,
+      author: true,
+      createdAt: true,
+    },
+  });
+
   const step = await prisma.step.findFirst({
     where: { id: stepId, projectId },
     select: {
@@ -33,6 +46,8 @@ export default async function StepDetailPage({
           id: true,
           name: true,
           order: true,
+          content: true,
+          isLocked: true,
           assets: {
             where: { type: "IMAGE" },
             orderBy: { createdAt: "desc" },
@@ -99,6 +114,8 @@ export default async function StepDetailPage({
     id: mb.id,
     name: mb.name,
     order: mb.order,
+    content: mb.content,
+    isLocked: mb.isLocked,
     assets: mb.assets.map((a) => ({
       id: a.id,
       url: a.url,
@@ -138,13 +155,18 @@ export default async function StepDetailPage({
     <div className="min-h-screen bg-zinc-100">
       <div className="px-3 sm:px-4 py-4 sm:py-6">
         {/* Header */}
-        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-          <Link href={`/project/${projectId}`} className="text-sm text-zinc-600 hover:text-zinc-900">
-            ← {project.name}
-          </Link>
-          <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-900">
-            {step.title}
-          </h1>
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <Link href={`/project/${projectId}`} className="text-sm text-zinc-600 hover:text-zinc-900">
+              ← {project.name}
+            </Link>
+            <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-900">
+              {step.title}
+            </h1>
+          </div>
+          {comments.length > 0 && (
+            <CommentsIndicator comments={comments} />
+          )}
         </div>
 
         {/* Content Section */}

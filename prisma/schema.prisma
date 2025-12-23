@@ -83,16 +83,20 @@ model VerificationToken {
 }
 
 model Project {
-  id        String        @id @default(cuid())
-  name      String
-  status    ProjectStatus @default(ACTIVE)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id         String        @id @default(cuid())
+  name       String
+  status     ProjectStatus @default(ACTIVE)
+  clientCode String?       @unique
+  clientName String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
-  steps   Step[]
-  members ProjectMember[]
+  steps    Step[]
+  members  ProjectMember[]
+  comments Comment[]
 
   @@index([status])
+  @@index([clientCode])
 }
 
 model ProjectMember {
@@ -129,6 +133,8 @@ model Moodboard {
   stepId    String
   name      String   @default("Concept")
   order     Int      @default(0)
+  content   String   @default("")
+  isLocked  Boolean  @default(false)
   createdAt DateTime @default(now())
 
   step   Step    @relation(fields: [stepId], references: [id], onDelete: Cascade)
@@ -164,4 +170,18 @@ model Asset {
   @@index([stepId])
   @@index([moodboardId])
   @@index([type])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  projectId String
+  stepId    String?
+  content   String
+  author    String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([stepId])
 }

@@ -25,9 +25,14 @@ export async function PATCH(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
+  const updateData: { name?: string; content?: string; isLocked?: boolean } = {};
+  if (body.name !== undefined) updateData.name = body.name;
+  if (body.content !== undefined) updateData.content = body.content;
+  if (body.isLocked !== undefined) updateData.isLocked = body.isLocked;
+
   const updated = await prisma.moodboard.update({
     where: { id: moodboardId },
-    data: { name: body.name },
+    data: updateData,
   });
 
   return NextResponse.json({ ok: true, moodboard: updated });

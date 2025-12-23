@@ -11,14 +11,28 @@ export async function POST(req: Request) {
 
   const form = await req.formData();
   const name = String(form.get("name") ?? "").trim();
+  const clientCode = String(form.get("clientCode") ?? "").trim() || null;
+  const clientName = String(form.get("clientName") ?? "").trim() || null;
 
   if (!name) {
     return NextResponse.json({ error: "name_required" }, { status: 400 });
   }
 
+  // Check if client code already exists
+  if (clientCode) {
+    const existing = await prisma.project.findUnique({
+      where: { clientCode },
+    });
+    if (existing) {
+      return NextResponse.redirect(new URL(`/admin?error=code_exists`, req.url));
+    }
+  }
+
   const project = await prisma.project.create({
     data: {
       name,
+      clientCode,
+      clientName,
       members: {
         create: {
           userId: session.user.id,
@@ -31,5 +45,5 @@ export async function POST(req: Request) {
     select: { id: true },
   });
 
-  return NextResponse.redirect(new URL(`/project/${project.id}`, req.url));
+  return NextResponse.redirect(new URL(`/admin/project/${project.id}`, req.url));
 }

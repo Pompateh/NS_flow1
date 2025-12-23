@@ -18,14 +18,26 @@ export async function POST(
 
   if (action === "update") {
     const name = String(form.get("name") ?? "").trim();
+    const clientName = String(form.get("clientName") ?? "").trim() || null;
+    const clientCode = String(form.get("clientCode") ?? "").trim() || null;
 
     if (!name) {
       return NextResponse.json({ error: "name_required" }, { status: 400 });
     }
 
+    // Check if client code is unique (if provided)
+    if (clientCode) {
+      const existing = await prisma.project.findFirst({
+        where: { clientCode, id: { not: projectId } },
+      });
+      if (existing) {
+        return NextResponse.redirect(new URL(`/admin/project/${projectId}?error=code_exists`, req.url));
+      }
+    }
+
     await prisma.project.update({
       where: { id: projectId },
-      data: { name },
+      data: { name, clientName, clientCode },
     });
 
     return NextResponse.redirect(new URL(`/admin/project/${projectId}`, req.url));

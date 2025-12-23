@@ -35,19 +35,31 @@ export default async function AdminPage() {
             <p className="text-sm text-zinc-600">Manage projects (v1 minimal).</p>
           </div>
 
-          <form action="/api/admin/projects" method="post" className="flex flex-col sm:flex-row gap-2">
-            <input
-              name="name"
-              required
-              placeholder="New project name"
-              className="h-10 w-full sm:w-64 rounded-md border border-zinc-200 bg-white px-3 text-sm"
-            />
-            <button
-              type="submit"
-              className="h-10 rounded-md bg-zinc-900 px-3 text-sm font-medium text-white hover:bg-zinc-800"
-            >
-              Create
-            </button>
+          <form action="/api/admin/projects" method="post" className="flex flex-col gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                name="name"
+                required
+                placeholder="Project name"
+                className="h-10 w-full sm:w-48 rounded-md border border-zinc-200 bg-white px-3 text-sm"
+              />
+              <input
+                name="clientName"
+                placeholder="Client name"
+                className="h-10 w-full sm:w-36 rounded-md border border-zinc-200 bg-white px-3 text-sm"
+              />
+              <input
+                name="clientCode"
+                placeholder="Client code"
+                className="h-10 w-full sm:w-32 rounded-md border border-zinc-200 bg-white px-3 text-sm"
+              />
+              <button
+                type="submit"
+                className="h-10 rounded-md bg-zinc-900 px-3 text-sm font-medium text-white hover:bg-zinc-800"
+              >
+                Create
+              </button>
+            </div>
           </form>
         </div>
 

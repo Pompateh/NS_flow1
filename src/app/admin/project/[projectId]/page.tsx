@@ -28,6 +28,8 @@ export default async function AdminProjectPage({
       id: true,
       name: true,
       status: true,
+      clientCode: true,
+      clientName: true,
       updatedAt: true,
       steps: {
         orderBy: { order: "asc" },
@@ -74,27 +76,60 @@ export default async function AdminProjectPage({
           </Link>
         </div>
 
-        {/* Project Name Edit */}
+        {/* Project Settings */}
         <section className="mt-6 sm:mt-8 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6">
           <h2 className="text-sm font-semibold text-zinc-900">Project Settings</h2>
           <form
             action={`/api/admin/project/${projectId}`}
             method="post"
-            className="mt-4 flex flex-col sm:flex-row gap-3"
+            className="mt-4 space-y-4"
           >
             <input type="hidden" name="action" value="update" />
-            <input
-              name="name"
-              defaultValue={project.name}
-              required
-              className="h-10 w-full sm:flex-1 rounded-md border border-zinc-200 bg-white px-3 text-sm"
-              placeholder="Project name"
-            />
+            <div className="grid gap-2">
+              <label className="text-xs font-medium text-zinc-700">Project Name</label>
+              <input
+                name="name"
+                defaultValue={project.name}
+                required
+                className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm"
+                placeholder="Project name"
+              />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <label className="text-xs font-medium text-zinc-700">Client Name</label>
+                <input
+                  name="clientName"
+                  defaultValue={project.clientName || ""}
+                  className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm"
+                  placeholder="Client name"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs font-medium text-zinc-700">Client Access Code</label>
+                <input
+                  name="clientCode"
+                  defaultValue={project.clientCode || ""}
+                  className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm"
+                  placeholder="Unique code for client login"
+                />
+              </div>
+            </div>
+            {project.clientCode && (
+              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+                <p className="text-xs text-blue-800">
+                  <strong>Client Login URL:</strong> /client
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Client enters code: <strong>{project.clientCode}</strong>
+                </p>
+              </div>
+            )}
             <button
               type="submit"
               className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
             >
-              Save Name
+              Save Settings
             </button>
           </form>
         </section>

@@ -42,6 +42,9 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
   const [maxZIndex, setMaxZIndex] = useState(() => 
     Math.max(...assets.map(a => a.zIndex || 1), 1)
   );
+  const [showPasteMenu, setShowPasteMenu] = useState(false);
+  const [pasteMenuPosition, setPasteMenuPosition] = useState({ x: 0, y: 0 });
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setLocalAssets(assets);
@@ -185,8 +188,66 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     if (e.target === canvasRef.current) {
       handleDeselect();
+      setShowPasteMenu(false);
     }
   }, [handleDeselect]);
+
+  // Long press handler for mobile paste
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isAdmin) return;
+    
+    const touch = e.touches[0];
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    longPressTimer.current = setTimeout(() => {
+      setPasteMenuPosition({
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top,
+      });
+      setShowPasteMenu(true);
+    }, 500); // 500ms long press
+  }, [isAdmin]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback(() => {
+    // Cancel long press if user moves finger
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  // Handle paste from clipboard API (for mobile)
+  const handlePasteFromClipboard = useCallback(async () => {
+    setShowPasteMenu(false);
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      const imageFiles: File[] = [];
+      
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith("image/")) {
+            const blob = await item.getType(type);
+            const file = new File([blob], `pasted-image-${Date.now()}.${type.split("/")[1]}`, { type });
+            imageFiles.push(file);
+          }
+        }
+      }
+      
+      if (imageFiles.length > 0) {
+        await uploadPastedImages(imageFiles);
+      }
+    } catch (err) {
+      console.error("Could not access clipboard:", err);
+    }
+  }, [uploadPastedImages]);
 
   return (
     <div className="relative">
@@ -205,6 +266,20 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
         }}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchMove}
+        onContextMenu={(e) => {
+          if (!isAdmin) return;
+          e.preventDefault();
+          const rect = canvasRef.current?.getBoundingClientRect();
+          if (!rect) return;
+          setPasteMenuPosition({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+          });
+          setShowPasteMenu(true);
+        }}
         className={`relative w-full overflow-hidden rounded-lg border-2 bg-white shadow-lg outline-none ${
           isFocused ? "border-blue-400" : "border-zinc-300"
         }`}
@@ -233,6 +308,30 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
         {localAssets.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center text-zinc-400">
             <p className="text-xs sm:text-sm text-center px-4">No images yet. Upload images to start your moodboard.</p>
+          </div>
+        )}
+
+        {/* Paste context menu for mobile */}
+        {showPasteMenu && isAdmin && (
+          <div
+            className="absolute z-50 bg-white rounded-lg shadow-xl border border-zinc-200 py-1 min-w-[120px]"
+            style={{
+              left: pasteMenuPosition.x,
+              top: pasteMenuPosition.y,
+            }}
+          >
+            <button
+              onClick={handlePasteFromClipboard}
+              className="w-full px-4 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 flex items-center gap-2"
+            >
+              Paste Image
+            </button>
+            <button
+              onClick={() => setShowPasteMenu(false)}
+              className="w-full px-4 py-2 text-left text-sm text-zinc-500 hover:bg-zinc-100"
+            >
+              Cancel
+            </button>
           </div>
         )}
       </div>

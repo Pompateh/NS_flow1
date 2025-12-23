@@ -100,7 +100,7 @@ export default function FileList({ files, stepId, isAdmin }: FileListProps) {
             </div>
 
             {/* Modal Content */}
-            <div className="p-4">
+            <div className="p-4 flex items-center justify-center">
               {getFileType(previewFile.filename) === "pdf" ? (
                 <iframe
                   src={previewFile.url}
@@ -114,11 +114,19 @@ export default function FileList({ files, stepId, isAdmin }: FileListProps) {
                   className="max-h-[75vh] max-w-full rounded object-contain"
                 />
               ) : getFileType(previewFile.filename) === "video" ? (
-                <video
-                  src={previewFile.url}
-                  controls
-                  className="max-h-[75vh] max-w-full rounded"
-                />
+                <div className="w-full flex items-center justify-center bg-black rounded">
+                  <video
+                    src={previewFile.url}
+                    controls
+                    autoPlay
+                    playsInline
+                    className="h-[60vh] sm:h-[75vh] w-auto max-w-full rounded"
+                    style={{ objectFit: 'contain' }}
+                  >
+                    <source src={previewFile.url} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-4 py-12 px-8">
                   <div className="rounded-full bg-zinc-100 p-4">
