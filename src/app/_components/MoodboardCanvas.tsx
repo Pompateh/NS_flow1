@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import MoodboardImage from "./MoodboardImage";
 
@@ -42,6 +42,14 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [pasting, setPasting] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
+  
+  // Detect iOS device
+  const isIOS = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }, []);
   const [maxZIndex, setMaxZIndex] = useState(() => 
     Math.max(...assets.map(a => a.zIndex || 1), 1)
   );
@@ -221,13 +229,42 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
     }
   }, []);
 
+  // Handle file input for iOS fallback
+  const handleFileInputChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const imageFiles = Array.from(files).filter(f => f.type.startsWith("image/"));
+    if (imageFiles.length > 0) {
+      await uploadPastedImages(imageFiles);
+    }
+    
+    // Reset input
+    if (hiddenInputRef.current) {
+      hiddenInputRef.current.value = "";
+    }
+    setContextMenu(null);
+  }, [uploadPastedImages]);
+
   const handlePasteFromMenu = useCallback(async () => {
     if (!isAdmin || pasting) return;
+    
+    // On iOS, use file input instead of clipboard API
+    if (isIOS) {
+      hiddenInputRef.current?.click();
+      return;
+    }
     
     setPasting(true);
     setContextMenu(null);
     
     try {
+      // Check if clipboard API is available
+      if (!navigator.clipboard?.read) {
+        alert("Clipboard paste not supported on this device. Please use the upload button.");
+        return;
+      }
+      
       const clipboardItems = await navigator.clipboard.read();
       const imageFiles: File[] = [];
       
@@ -250,11 +287,11 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
       await uploadPastedImages(imageFiles);
     } catch (err) {
       console.error("Paste error:", err);
-      alert("Failed to paste image");
+      alert("Failed to paste image. Please use the upload button instead.");
     } finally {
       setPasting(false);
     }
-  }, [isAdmin, pasting, uploadPastedImages]);
+  }, [isAdmin, pasting, uploadPastedImages, isIOS]);
 
   
   return (
@@ -309,6 +346,16 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
           </div>
         )}
 
+        {/* Hidden file input for iOS fallback */}
+        <input
+          ref={hiddenInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFileInputChange}
+          className="hidden"
+        />
+
         {/* Context menu for paste */}
         {contextMenu && isAdmin && (
           <div
@@ -320,7 +367,7 @@ export default function MoodboardCanvas({ stepId, moodboardId, assets, isAdmin }
               disabled={pasting}
               className="w-full px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50"
             >
-              {pasting ? "Pasting..." : "Paste Image"}
+              {pasting ? "Pasting..." : isIOS ? "Add Image" : "Paste Image"}
             </button>
           </div>
         )}

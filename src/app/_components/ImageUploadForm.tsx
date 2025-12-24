@@ -117,7 +117,6 @@ export default function ImageUploadForm({ stepId, moodboardId }: { stepId: strin
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         multiple
         onChange={async (e) => {
           const files = e.target.files;
